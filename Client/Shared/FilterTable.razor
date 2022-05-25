@@ -1,0 +1,410 @@
+﻿@inject IJSRuntime JS
+@using System.ComponentModel;
+@using System.Collections;
+@using System.Reflection;
+@inject ToastService toast
+
+<style>
+    .tb_content th a,
+    .tb_content td a {
+        display: block;
+        width: 100%;
+    }
+
+        .tb_content th a.sort-by {
+            position: relative;
+            width: 1rem;
+        }
+
+    .tb_content a.sort-by:before,
+    .tb_content a.sort-by:after {
+        border: 4px solid transparent;
+        content: "";
+        display: block;
+        height: 0;
+        right: 5px;
+        top: 50%;
+        position: absolute;
+        width: 0;
+    }
+
+    .tb_content a.sort-by:before {
+        border-bottom-color: #666;
+        margin-top: -9px;
+    }
+
+    .tb_content a.sort-by:after {
+        border-top-color: #666;
+        margin-top: 1px;
+    }
+</style>
+
+<div @onclick="OnOpenModalClick">
+    @ModalButton
+</div>
+@if (show_flag == true)
+{
+    <div class="fixed w-full h-full overflow-y-auto left-0 top-0 p-10" style="z-index:10000;background-color:rgba(0,0,0,0.6);">
+        <div class="tbcomponent_container p-4 w-full lg:w-2/3 md:w-3/4 bg-white rounded
+             lg:top-1/2 lg:left-1/2 lg:transform lg:-translate-x-1/2 lg:-translate-y-1/2 lg:absolute
+             md:top-1/2 md:left-1/2 md:transform md:-translate-x-1/2 md:-translate-y-1/2 md:absolute
+             ">
+            <div class="tb_header pb-3 font-weight-bold text-2xl ">
+                @TableTitle
+            </div>
+            <div class="opacity-70 sm\:font-black pt-3 text-lg">
+                @Description
+            </div>
+            <div class="flex pr-3">
+                <input placeholder="Search" type="text" @onkeyup="OnTotalSearch"
+                       @bind="searchstr" @bind:event="oninput"
+                       class="w-full focus:border-purple focus:ring-0 p-0 block md:hidden mr-2" />
+                @if (isoption == false)
+                {
+                    <input type="checkbox" class="self-center block md:hidden"
+                           @onchange="eventArgs => { OnCheckAllClick(eventArgs.Value); }" />
+                }
+            </div>
+            <div class="tb_content overflow-y-auto" style="max-height: 300px;">
+                <table class="table flex table-auto leading-normal w-full">
+                    <thead class="uppercase text-gray-600 text-xs font-semibold bg-gray-200">
+                        <tr class="hidden md:table-row">
+                            @foreach (Column col in columns)
+                            {
+                                <th class="text-left p-2 sticky top-0 bg-mist">
+                                    <span class="w-full">@col.title</span>
+                                    <div class="flex">
+                                        <input placeholder="@col.title" type="text" @onkeyup="OnFilter"
+                                               @bind="col.filter" @bind:event="oninput"
+                                               class="focus:border-purple focus:ring-0 p-0 flex-grow-1" />
+                                        <a @onclick="() => { Sort(col.key); }" class="cursor-pointer sort-by w-2"></a>
+                                    </div>
+                                </th>
+                            }
+                            <th class="text-right p-2 md:p-3 sticky top-0 bg-mist">
+                                @if (isoption == false)
+                                {
+                                    <input type="checkbox"
+                                           @onchange="eventArgs => { OnCheckAllClick(eventArgs.Value); }" />
+                                }
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody class="flex-1 text-gray-700 sm:flex-none">
+                        @foreach (object item in param)
+                        {
+                            bool readonlyflag = false;
+                            PropertyInfo info = item.GetType().GetProperty("isreadonly");
+                            if (info != null)
+                            {
+                                readonlyflag = (bool)info.GetValue(item);
+                                Console.WriteLine(readonlyflag);
+                            }
+                            string disabledstr = readonlyflag ? "disabled" : "";
+
+                            @if (filterlist.IndexOf(item) >= 0 || readonlyflag == true)
+                            {
+                                string bgcolor = "";
+                                if (selected[param.IndexOf(item)] == true || readonlyflag == true) bgcolor = "bg-blue-100";
+
+                                <tr @onclick="eventArgs => { OnTrClick(param.IndexOf(item)); }"
+                                    class=" border-b cursor-pointer flex p-1 lg:p-5 md:p-3 hover:bg-gray-100 md:table-row flex-col w-full flex-wrap @bgcolor">
+
+                                    @foreach (Column col in columns)
+                                    {
+                                        <td class="p-2 md:p-3 border-top-0 ">
+                                            <div class="flex">
+                                                <div>
+                                                    <label class="text-xs text-gray-500 uppercase font-semibold md:hidden" for="">@col.title : </label>
+                                                    @if (columns.IndexOf(col) == 0)
+                                                    {
+                                                        <span class="hidden md:inline">@ItemIcon</span>
+                                                    }
+                                                    <sapn class="">@item.GetType().GetProperty(col.key).GetValue(item).ToString()</sapn>
+                                                </div>
+                                            </div>
+                                        </td>
+                                    }
+                                    <td class="text-right p-2 md:p-3 border-top-0">
+                                        @if (readonlyflag)
+                                        {
+                                            if (isoption)
+                                            {
+                                                <input name="itemsel" type="radio" @onchange="eventArgs => { OnCheckClick(param.IndexOf(item),0); }" />
+                                            }
+                                            else
+                                            {
+                                                <input name="itemsel" type="checkbox" @onchange="eventArgs => { OnCheckClick(param.IndexOf(item),0); }" />
+                                            }
+                                        }
+                                        else
+                                        {
+                                            @if (isoption == true)
+                                            {
+                                                if (selected_index == param.IndexOf(item))
+                                                {
+                                                    <input name="itemsel" type="radio" checked @onchange="eventArgs => { OnCheckClick(param.IndexOf(item),0); }" />
+                                                }
+                                                else
+                                                {
+                                                    <input name="itemsel" type="radio" @onchange="eventArgs => { OnCheckClick(param.IndexOf(item),0); }" />
+                                                }
+                                            }
+                                            else
+                                            {
+                                                if (selected[param.IndexOf(item)] == false)
+                                                {
+                                                    <input type="checkbox" @onchange="eventArgs => { OnCheckClick(param.IndexOf(item), eventArgs.Value); }" />
+                                                }
+                                                else
+                                                {
+                                                    <input type="checkbox" checked @onchange="eventArgs => { OnCheckClick(param.IndexOf(item), eventArgs.Value); }" />
+                                                }
+                                            }
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        }
+                    </tbody>
+                </table>
+            </div>
+            <div class="tb_info p-3">
+                <div>
+                    <span class="text-purple">Total @param.Count() / </span>
+                    <span class="text-red-300">Filtered @filterlist.Count()</span>
+                    @if (isoption == false)
+                    {
+                        <span class="text-black">/ Selected @selected_cnt </span>
+                    }
+                </div>
+            </div>
+            <div class="flex lg:justify-end md:justify-end justify-center">
+                <div @onclick="OnCloseClick" class="bg-gray-300 hover:bg-purple text-gray-500 font-bold py-2 px-16 rounded hover:text-white cursor-pointer uppercase mr-5">Cancel</div>
+                <div @onclick="OnOkClick" class="flex items-center justify-center rounded-md px-16 py-2 bg-purple text-white font-bold cursor-pointer uppercase">Ok</div>
+            </div>
+        </div>
+    </div>
+}
+@code {
+    [Parameter]
+    public RenderFragment? TableTitle { get; set; }
+    [Parameter]
+    public RenderFragment? Description { get; set; }
+    [Parameter]
+    public RenderFragment? ItemIcon { get; set; }
+    [Parameter]
+    public RenderFragment? ModalButton { get; set; }
+
+    [Parameter]
+    public List<object> param { get; set; }
+    [Parameter]
+    public List<Column> columns { get; set; }
+
+    [Parameter]
+    public Action<List<Object>> OnOkCallback { get; set; }
+    [Parameter]
+    public bool isoption { get; set; } = false;
+
+    public List<object> filterlist = new List<object>();
+    public bool[] selected;
+    public string searchstr { get; set; }
+    public int selected_cnt = 0;
+    public int selected_index = -1;
+    //for ui
+    public bool show_flag = false;
+    public int sortdir = 1;
+
+    protected override async Task OnInitializedAsync()
+    {
+
+    }
+    protected override void OnParametersSet()
+    {
+        filterlist.Clear(); selected_cnt = 0;
+        filterlist.AddRange(param);
+        selected = new bool[param.Count()];
+
+        int len = param.Count();
+        bool _prev_selected = false;
+        for (int i = 0; i < len; i++)
+        {
+            object item = param[i];
+            PropertyInfo info = item.GetType().GetProperty("isselected");
+            if (info != null) _prev_selected = (bool)info.GetValue(item);
+            selected[i] = _prev_selected;
+            if (_prev_selected == true) selected_cnt++;
+        }
+        Console.WriteLine("not initialized.");
+    }
+    public void OnCancelClick()
+    {
+        show_flag = false;
+        StateHasChanged();
+    }
+
+    public void OnOkClick()
+    {
+        List<Object> retobj = new List<object>();
+        if (isoption == false)
+        {
+            if (selected_cnt == 0)
+            {
+                toast.ShowToast("Select at least an item or click Cancel Button", ToastLevel.Warning);
+                return;
+            }
+
+            for (int i = 0; i < param.Count(); i++)
+            {
+                if (selected[i] == true)
+                {
+                    retobj.Add(param[i]);
+                }
+            }
+        }
+        else
+        {
+            if (selected_index < 0)
+            {
+                toast.ShowToast("Select at least an item or click Cancel Button", ToastLevel.Warning);
+                return;
+            }
+            retobj.Add(param[selected_index]);
+        }
+        show_flag = false;
+        StateHasChanged();
+
+        int len = retobj.Count();
+        for (int i = 0; i < len; i++)
+        {
+            object item = retobj[i];
+            PropertyInfo info = item.GetType().GetProperty("isselected");
+            if (info != null) info.SetValue(item, true);
+        }
+        OnOkCallback.Invoke(retobj);
+    }
+
+    public void OnOpenModalClick()
+    {
+        show_flag = true;
+        StateHasChanged();
+    }
+
+    public void OnCloseClick()
+    {
+        show_flag = false;
+        StateHasChanged();
+    }
+
+    public void OnTrClick(Object _index)
+    {
+        bool readonlyflag = false;
+        object item = param[(int)_index];
+
+        PropertyInfo info = item.GetType().GetProperty("isreadonly");
+        if (info != null) readonlyflag = (bool)info.GetValue(item);
+        if (readonlyflag) return;
+
+        if (isoption == false)
+        {
+            selected[(int)_index] = !selected[(int)_index];
+            bool flag = selected[(int)_index];
+            if (flag == true) selected_cnt++;
+            else selected_cnt--;
+        }
+        else
+        {
+            selected_index = (int)_index;
+        }
+        StateHasChanged();
+    }
+
+    public void OnCheckClick(Object _index, Object _flag)
+    {
+        if (isoption == false)
+        {
+            bool flag = (bool)_flag;
+            selected[(int)_index] = flag;
+            if (flag == true) selected_cnt++;
+            else selected_cnt--;
+        }
+        else
+        {
+            selected_index = (int)_index;
+        }
+        StateHasChanged();
+    }
+
+    public void OnCheckAllClick(Object _flag)
+    {
+        bool flag = (bool)_flag;
+
+        int len = param.Count();
+        selected_cnt = 0;
+
+        for (int i = 0; i < len; i++)
+        {
+            if (filterlist.IndexOf(param[i]) >= 0)
+            {
+                selected[i] = flag;
+            }
+            if (selected[i] == true) selected_cnt++;
+
+        }
+    }
+    public async Task OnTotalSearch()
+    {
+        filterlist.Clear();
+        foreach (object item in param)
+        {
+            foreach (Column col in columns)
+            {
+                string val = item.GetType().GetProperty(col.key).GetValue(item).ToString();
+                val = val.ToLower();
+                if (val.Contains(searchstr.ToLower()) || searchstr == "")
+                {
+                    filterlist.Add(item); break;
+                }
+            }
+        }
+    }
+    public async Task Sort(string _key)
+    {
+        param.Sort(delegate (object x, object y)
+        {
+            PropertyInfo lab_x = x.GetType().GetProperty(_key);
+            PropertyInfo lab_y = y.GetType().GetProperty(_key);
+            if (lab_x == null || lab_y == null) return 0;
+
+            string xval = lab_x.GetValue(x).ToString();
+            string yval = lab_y.GetValue(y).ToString();
+            int ret = xval.CompareTo(yval);
+            return sortdir * ret;
+        });
+        sortdir = 0 - sortdir;
+    }
+    public async Task OnFilter()
+    {
+        filterlist.Clear();
+        foreach (object item in param)
+        {
+            bool flag = false;
+            foreach (Column col in columns)
+            {
+                string filter = col.filter;
+
+                string val = item.GetType().GetProperty(col.key).GetValue(item).ToString();
+                val = val.ToLower();
+                if (!(val.Contains(filter.ToLower()) || filter == ""))
+                {
+                    flag = true;
+                    break;
+                }
+            }
+            if (flag == false)
+            {
+                filterlist.Add(item);
+            }
+        }
+    }
+}

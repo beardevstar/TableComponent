@@ -1,0 +1,47 @@
+﻿body {
+}
+
+.toast {
+    display: none;
+    padding: 1rem;
+    color: #fff;
+    z-index: 10000;
+    position: fixed;
+    width: 25rem;
+    border-radius: 3px;
+}
+
+.toast-icon {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 0 1rem;
+    font-size: 2rem;
+}
+
+.toast-body {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    padding-left: 1rem;
+}
+
+.toast-body p {
+    margin-bottom: 0;
+}
+
+.toast-visible {
+    display: flex;
+    flex-direction: row;
+    animation: fadein 1.5s;
+}
+
+@keyframes fadein {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}

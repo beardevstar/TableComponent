@@ -1,0 +1,72 @@
+﻿@page "/"
+@using System.Collections;
+
+<h1>Hello, world!</h1>
+
+<input type="checkbox" id="vehicle1" name="vehicle1" value="Bike" @bind="@option_flag">
+<label for="vehicle1"> Show with Option</label>
+<br>
+@if (sel_cnt != 0)
+{
+    <span>@sel_cnt Selected</span>
+}
+else
+{
+    <span>Not Selected</span>
+}
+<FilterTable param="data" columns="cols" OnOkCallback="@OnCallBack"
+             isoption=@option_flag>
+    <TableTitle>Please select admins...</TableTitle>
+    <Description>This is Modal Filter Table Sample for selecting Objects.</Description>
+    <ItemIcon>
+        <svg style="color: mediumpurple; display: inline; width: 2rem;" xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0zm6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+    </ItemIcon>
+
+    <ModalButton>
+        <button class="bg-gold p-2">Click Here to See Modal Table with Selection</button>
+    </ModalButton>
+</FilterTable>
+
+@code{
+    public List<Object> data { get; set; } = new List<Object>();
+    public List<Column> cols { get; set; } = new List<Column>();
+    int sel_cnt { get; set; } = 0;
+    bool option_flag { get; set; } = false;
+    //here, you can see how to user Table component.
+    protected override async Task OnInitializedAsync()
+    {
+        cols.Add(new Column("name", "UserName"));
+        cols.Add(new Column("groupname", "Group"));
+        cols.Add(new Column("email", "Email"));
+        //cols.Add(new Column("groupname", "Group"));
+
+        data.Add(new SampleObject("person1", "mail1@gmail.com", "A.grp"));
+        data.Add(new SampleObject("sdperson2", "aswmail1@gwemail.com", "B.grp", true));
+        data.Add(new SampleObject("person3", "123maqwil1@gmail.com", "B.grp"));
+        data.Add(new SampleObject("person", "mail1@gmail.com", "B.grp",true));
+        data.Add(new SampleObject("person8", "maileqw1@gmail.com", "C.grp",false,true));
+        data.Add(new SampleObject("1p1erson0wefwef", "mail1@gmail.com", "B.grp"));
+        data.Add(new SampleObject("person1", "erflkmail1@gmail.com", "0.grp",false,true));
+        data.Add(new SampleObject("person2", "mail1@gwemail.com", "B.grp"));
+        data.Add(new SampleObject("1person3", "maqwil1@gmail.com", "D.grp"));
+        data.Add(new SampleObject("person", "mail1@gmail.com", "B.grp"));
+        data.Add(new SampleObject("3person8", "maileqw1@gmail.com", "B.grp"));
+        data.Add(new SampleObject("person0wefwef", "mail1@gmail.com", "B.grp"));
+        data.Add(new SampleObject("person1", "mail1@gmail.com", "A.grp"));
+        data.Add(new SampleObject("aperson2", "mail1@gwemail.com", "1.grp"));
+        data.Add(new SampleObject("person3", "maqwil1@gmail.com", "B.grp"));
+        data.Add(new SampleObject("person", "mail1@gmail.com", "B.grp"));
+        data.Add(new SampleObject("person8", "maileqw1@gmail.com", "B.grp"));
+        data.Add(new SampleObject("person0wefwef", "mail1@gmail.com", "B.grp"));
+    }
+
+    //when user clicked OK button on Table component this functino is triggered!
+    public void OnCallBack(List<object> _selected)
+    {
+        sel_cnt = _selected.Count();
+        StateHasChanged();
+    }
+}
+
